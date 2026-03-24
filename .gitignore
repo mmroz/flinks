@@ -1,0 +1,20 @@
+/.bundle/
+/.bundle-cache/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+/vendor/bundle/
+/bundle/
+
+# Ruby gem development
+/Gemfile.lock
+/*.gem
+
+# Local environment / editor noise
+/.DS_Store
+/.byebug_history
+/.rspec_status
