@@ -100,26 +100,30 @@ Successful responses return `Flinks::Resources::AuthorizeToken`.
 
 Error responses return `Flinks::Resources::ErrorObject`.
 
-### Authorize Cached Session
+### Authorize Session
 
-This calls `/Authorize` with:
-
-```json
-{
-  "LoginId": "...",
-  "MostRecentCached": true
-}
-```
+This calls `/Authorize` and returns a `Flinks::Session`.
 
 Usage:
 
 ```ruby
-session = Flinks.client.authorize_cached_session(login_id: "login-id")
+session = Flinks::Session.authorize(
+  login_id: "login-id",
+  authorize_token: "authorize-token"
+)
 session.class
 session.attributes
 ```
 
-Successful responses return `Flinks::Resources::Session`.
+Request body:
+
+```json
+{
+  "LoginId": "...",
+  "MostRecentCached": true,
+  "authorizeToken": "..."
+}
+```
 
 ### Get Accounts Summary
 
@@ -128,7 +132,7 @@ This calls `/GetAccountsSummary` with the configured `x-api-key`.
 Usage:
 
 ```ruby
-summary = Flinks.client.get_accounts_summary(request_id: "request-id")
+summary = Flinks::AccountSummary.get(request_id: "request-id")
 summary.class
 summary.attributes
 ```
@@ -136,14 +140,12 @@ summary.attributes
 Optional flags:
 
 ```ruby
-summary = Flinks.client.get_accounts_summary(
+summary = Flinks::AccountSummary.get(
   request_id: "request-id",
   with_balance: true,
   with_account_identity: true
 )
 ```
-
-Successful responses return `Flinks::Resources::AccountSummary`.
 
 ## Resource Models
 
@@ -155,14 +157,14 @@ All API models inherit from `Flinks::Resources::Resource` and use:
 
 Current resources:
 
-- `Flinks::Resources::AuthorizeToken`
-- `Flinks::Resources::ErrorObject`
-- `Flinks::Resources::Session`
-- `Flinks::Resources::AccountSummary`
-- `Flinks::Resources::Account`
-- `Flinks::Resources::Link`
-- `Flinks::Resources::Login`
-- `Flinks::Resources::Webhook::Authentication`
+- `Flinks::AuthorizeToken`
+- `Flinks::ErrorObject`
+- `Flinks::Session`
+- `Flinks::AccountSummary`
+- `Flinks::Account`
+- `Flinks::Link`
+- `Flinks::Login`
+- `Flinks::WebhookAuthentication`
 
 Resources implement a custom `inspect`, so in `irb` they print readable attribute output instead of a raw object id.
 
@@ -202,6 +204,57 @@ Resources implement a custom `inspect`, so in `irb` they print readable attribut
 
 `login` is a `Flinks::Resources::Login`.
 
+## Recommended Flow
+
+The intended end-to-end flow is:
+
+1. Generate an authorize token to initialize the Flinks flow.
+2. Wait for the webhook callback and parse it to get the `loginId`.
+3. Generate a fresh authorize token for the authorize request.
+4. Authorize the session with the `loginId` and the new authorize token.
+5. Use the returned `requestId` to fetch account summaries.
+
+Example:
+
+```ruby
+first_authorize_token = Flinks::AuthorizeToken.generate
+
+webhook = Flinks::WebhookAuthentication.from_url(
+  "https://example.com/flinks/connect/callback?demo=true&loginId=181fb102-48de-44b9-de78-08de7b4f854b&institution=FlinksCapital"
+)
+
+second_authorize_token = Flinks::AuthorizeToken.generate
+
+session = Flinks::Session.authorize(
+  login_id: webhook.login_id,
+  authorize_token: second_authorize_token.token
+)
+
+summary = Flinks::AccountSummary.get(request_id: session.request_id)
+summary
+```
+
+Concrete example:
+
+```ruby
+Flinks::AuthorizeToken.generate
+
+webhook = Flinks::WebhookAuthentication.from_url(
+  "https://example.com/flinks/connect/callback?demo=true&loginId=181fb102-48de-44b9-de78-08de7b4f854b&institution=FlinksCapital"
+)
+
+authorize_token = Flinks::AuthorizeToken.generate
+
+session = Flinks::Session.authorize(
+  login_id: "181fb102-48de-44b9-de78-08de7b4f854b",
+  authorize_token: "d19e983a-a70e-4e34-8b52-b5d321ca840f"
+)
+
+summary = Flinks::AccountSummary.get(
+  request_id: "6dc74a3b-1ddf-41fb-bf95-f093f2496c92"
+)
+```
+
 ## Webhook Parsing
 
 The connect callback parser extracts known query params and preserves unknown ones.
@@ -209,27 +262,14 @@ The connect callback parser extracts known query params and preserves unknown on
 Example:
 
 ```ruby
-auth = Flinks::Resources::Webhook::Authentication.from_url(
+webhook = Flinks::WebhookAuthentication.from_url(
   "https://example.com/flinks/connect/callback?demo=true&loginId=181fb102-48de-44b9-de78-08de7b4f854b&institution=FlinksCapital&requestId=req-123"
 )
 
-auth.demo
-auth.login_id
-auth.institution
-auth.extra_query_params
-```
-
-## Example IRB Session
-
-```ruby
-response = Flinks::Resources::AuthorizeToken.generate
-response
-
-session = Flinks.client.authorize_cached_session(login_id: "your-login-id")
-session
-
-summary = Flinks.client.get_accounts_summary(request_id: session.request_id)
-summary
+webhook.demo
+webhook.login_id
+webhook.institution
+webhook.extra_query_params
 ```
 
 ## Development
