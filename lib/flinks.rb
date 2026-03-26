@@ -45,7 +45,7 @@ module Flinks
                   :log_level
   end
 
-  self.iframe_url = "https://toolbox-wealth-iframe.private.fin.ag/v2/?demo=true"
+  self.iframe_url = "https://toolbox-iframe.private.fin.ag/"
   self.api_url = "https://toolbox-api.private.fin.ag/"
   self.customer_id = "43387ca6-0391-4c82-857d-70d95f087ecb"
   self.bearer_token = "ze7ofYz28x1pxwrM"
@@ -56,6 +56,7 @@ module Flinks
   def self.client
     Client.new
   end
+
 
   def self.configure
     yield self
