@@ -253,6 +253,324 @@ class TestFlinks < Minitest::Test
     assert_equal "1234567890", resource.login.username
   end
 
+  def test_account_detail_builds_success_payload
+    resource = Flinks::Resources::AccountDetail.new(
+      "HttpStatusCode" => 200,
+      "Accounts" => [
+        {
+          "Transactions" => [
+            {
+              "Date" => "2025-01-31",
+              "Code" => nil,
+              "Description" => "PAYROLL - Stripe Paycheck",
+              "Debit" => 1000.4,
+              "Credit" => 1500.25,
+              "Balance" => 5105.6,
+              "Id" => "94584aed-7c98-42a4-9836-9f8557db63f5"
+            }
+          ],
+          "Title" => "Chequing Account",
+          "AccountNumber" => "7641238",
+          "Id" => "27a9ffa0-c6b9-4cc6-9eaa-aa9efa07a889"
+        }
+      ],
+      "InstitutionName" => "FlinksCapital",
+      "Login" => {
+        "Username" => "chat_gpt",
+        "IsScheduledRefresh" => false,
+        "LastRefresh" => "2025-01-31T17:40:54.569261",
+        "Type" => "Personal",
+        "Id" => "5602459c-f6d0-4ca0-6750-08dccdcadcc0"
+      },
+      "InstitutionId" => 14,
+      "Institution" => "FlinksCapital",
+      "RequestId" => "22178382-31ee-485c-a750-c20929b6a344"
+    )
+
+    assert_equal 200, resource.http_status_code
+    assert_equal "FlinksCapital", resource.institution_name
+    assert_equal 1, resource.accounts.length
+    assert_instance_of Flinks::Resources::Account, resource.accounts.first
+    assert_equal "Chequing Account", resource.accounts.first.title
+    assert_instance_of Flinks::Resources::Transaction, resource.accounts.first.transactions.first
+    assert_equal "2025-01-31", resource.accounts.first.transactions.first.date
+    assert_instance_of Flinks::Resources::Login, resource.login
+    assert_equal "chat_gpt", resource.login.username
+  end
+
+  def test_account_detail_pending_builds_pending_payload
+    resource = Flinks::Resources::AccountDetailPending.new(
+      "FlinksCode" => "OPERATION_PENDING",
+      "Links" => [
+        {
+          "rel" => "{Endpoint}Async",
+          "href" => "/{Endpoint}Async",
+          "example" => "/{Endpoint}Async/{requestId}"
+        }
+      ],
+      "HttpStatusCode" => 202,
+      "Message" => "Your operation is still processing",
+      "RequestId" => "077785a3-fd0f-42f7-9251-ee2ff7f3b4ff"
+    )
+
+    assert_equal 202, resource.http_status_code
+    assert_equal "OPERATION_PENDING", resource.flinks_code
+    assert_equal "Your operation is still processing", resource.message
+    assert_equal "077785a3-fd0f-42f7-9251-ee2ff7f3b4ff", resource.request_id
+    assert_equal 1, resource.links.length
+    assert_instance_of Flinks::Resources::Link, resource.links.first
+  end
+
+  def test_get_accounts_detail_sends_expected_payload_and_returns_success_resource
+    response = Struct.new(:status, :body).new(
+      200,
+      {
+        "HttpStatusCode" => 200,
+        "Accounts" => [
+          {
+            "Transactions" => [
+              {
+                "Date" => "2025-01-31",
+                "Description" => "PAYROLL - Stripe Paycheck",
+                "Id" => "txn-123"
+              }
+            ],
+            "Title" => "Chequing Account",
+            "Id" => "27a9ffa0-c6b9-4cc6-9eaa-aa9efa07a889"
+          }
+        ],
+        "InstitutionName" => "FlinksCapital",
+        "RequestId" => "22178382-31ee-485c-a750-c20929b6a344"
+      }.to_json
+    )
+
+    captured_path = nil
+    captured_headers = nil
+    captured_body = nil
+    connection = Object.new
+    connection.define_singleton_method(:post) do |path, &block|
+      captured_path = path
+      request = Struct.new(:headers, :body).new({}, nil)
+      block.call(request)
+      captured_headers = request.headers
+      captured_body = request.body
+      response
+    end
+
+    Faraday.stub :new, connection do
+      resource = Flinks.client.get_accounts_detail(request_id: "3fa391bc-bc52-4424-82c5-8662600df9b2")
+
+      assert_instance_of Flinks::Resources::AccountDetail, resource
+      assert_equal 200, resource.http_status_code
+      assert_instance_of Flinks::Resources::Account, resource.accounts.first
+      assert_equal "Chequing Account", resource.accounts.first.title
+      assert_instance_of Flinks::Resources::Transaction, resource.accounts.first.transactions.first
+      assert_equal "2025-01-31", resource.accounts.first.transactions.first.date
+    end
+
+    assert_equal "/v3/43387ca6-0391-4c82-857d-70d95f087ecb/BankingServices/GetAccountsDetail", captured_path
+    assert_equal "application/json", captured_headers["Content-Type"]
+    assert_equal Flinks.x_api_key, captured_headers["x-api-key"]
+    assert_equal(
+      {
+        "RequestId" => "3fa391bc-bc52-4424-82c5-8662600df9b2",
+        "WithAccountIdentity" => true,
+        "WithKYC" => true,
+        "WithTransactions" => true,
+        "DaysOfTransactions" => "Days90",
+        "WithDetailsAndBankingStatements" => false,
+        "NumberOfBankingStatements" => "MostRecent"
+      },
+      JSON.parse(captured_body)
+    )
+  end
+
+  def test_get_accounts_detail_returns_pending_resource_for_202
+    response = Struct.new(:status, :body).new(
+      202,
+      {
+        "FlinksCode" => "OPERATION_PENDING",
+        "Links" => [
+          {
+            "rel" => "{Endpoint}Async",
+            "href" => "/{Endpoint}Async",
+            "example" => "/{Endpoint}Async/{requestId}"
+          }
+        ],
+        "HttpStatusCode" => 202,
+        "Message" => "Your operation is still processing",
+        "RequestId" => "077785a3-fd0f-42f7-9251-ee2ff7f3b4ff"
+      }.to_json
+    )
+
+    connection = Object.new
+    connection.define_singleton_method(:post) do |_path, &block|
+      request = Struct.new(:headers, :body).new({}, nil)
+      block.call(request)
+      response
+    end
+
+    Faraday.stub :new, connection do
+      resource = Flinks.client.get_accounts_detail(request_id: "3fa391bc-bc52-4424-82c5-8662600df9b2")
+
+      assert_instance_of Flinks::Resources::AccountDetailPending, resource
+      assert_equal 202, resource.http_status_code
+      assert_equal "077785a3-fd0f-42f7-9251-ee2ff7f3b4ff", resource.request_id
+    end
+  end
+
+  def test_get_accounts_detail_async_returns_pending_resource_for_202
+    response = Struct.new(:status, :body).new(
+      202,
+      {
+        "FlinksCode" => "OPERATION_PENDING",
+        "Links" => [
+          {
+            "rel" => "GetAccountsDetailAsync",
+            "href" => "/GetAccountsDetailAsync",
+            "example" => "/GetAccountsDetailAsync/077785a3-fd0f-42f7-9251-ee2ff7f3b4ff"
+          }
+        ],
+        "HttpStatusCode" => 202,
+        "Message" => "Your operation is still processing",
+        "RequestId" => "077785a3-fd0f-42f7-9251-ee2ff7f3b4ff"
+      }.to_json
+    )
+
+    captured_path = nil
+    connection = Object.new
+    connection.define_singleton_method(:get) do |path, &block|
+      captured_path = path
+      request = Struct.new(:headers).new({})
+      block.call(request)
+      response
+    end
+
+    Faraday.stub :new, connection do
+      resource = Flinks.client.get_accounts_detail_async(request_id: "077785a3-fd0f-42f7-9251-ee2ff7f3b4ff")
+
+      assert_instance_of Flinks::Resources::AccountDetailPending, resource
+      assert_equal 202, resource.http_status_code
+    end
+
+    assert_equal "/v3/43387ca6-0391-4c82-857d-70d95f087ecb/BankingServices/GetAccountsDetailAsync/077785a3-fd0f-42f7-9251-ee2ff7f3b4ff", captured_path
+  end
+
+  def test_get_accounts_detail_async_returns_success_resource_with_login
+    response = Struct.new(:status, :body).new(
+      200,
+      {
+        "HttpStatusCode" => 200,
+        "Accounts" => [
+          {
+            "Transactions" => [],
+            "TransitNumber" => "12347",
+            "InstitutionNumber" => "777",
+            "Title" => "Chequing Account",
+            "AccountNumber" => "7641238",
+            "Balance" => {
+              "Available" => 5405.5,
+              "Current" => 5105.5,
+              "Limit" => 5105.5
+            },
+            "Category" => "Operations",
+            "Type" => "Chequing",
+            "Currency" => "CAD",
+            "Holder" => {
+              "Name" => "Testing"
+            },
+            "AccountType" => nil,
+            "Id" => "27a9ffa0-c6b9-4cc6-9eaa-aa9efa07a889"
+          }
+        ],
+        "InstitutionName" => "FlinksCapital",
+        "Login" => {
+          "Username" => "chat_gpt",
+          "IsScheduledRefresh" => false,
+          "LastRefresh" => "2025-01-31T17:40:54.569261",
+          "Type" => "Personal",
+          "Id" => "5602459c-f6d0-4ca0-6750-08dccdcadcc0"
+        },
+        "InstitutionId" => 14,
+        "Institution" => "FlinksCapital",
+        "RequestId" => "22178382-31ee-485c-a750-c20929b6a344"
+      }.to_json
+    )
+
+    connection = Object.new
+    connection.define_singleton_method(:get) do |_path, &block|
+      request = Struct.new(:headers).new({})
+      block.call(request)
+      response
+    end
+
+    Faraday.stub :new, connection do
+      resource = Flinks.client.get_accounts_detail_async(request_id: "22178382-31ee-485c-a750-c20929b6a344")
+
+      assert_instance_of Flinks::Resources::AccountDetail, resource
+      assert_instance_of Flinks::Resources::Login, resource.login
+      assert_equal "chat_gpt", resource.login.username
+      assert_instance_of Flinks::Resources::Account, resource.accounts.first
+      assert_equal "27a9ffa0-c6b9-4cc6-9eaa-aa9efa07a889", resource.accounts.first.id
+    end
+  end
+
+  def test_account_detail_get_delegates_to_client
+    client = Object.new
+    expected_resource = Flinks::Resources::AccountDetailPending.new(
+      "HttpStatusCode" => 202,
+      "RequestId" => "req-123",
+      "FlinksCode" => "OPERATION_PENDING",
+      "Message" => "Your operation is still processing"
+    )
+    client.define_singleton_method(:get_accounts_detail) do |**kwargs|
+      raise "unexpected kwargs" unless kwargs == {
+        request_id: "req-123",
+        with_account_identity: true,
+        with_kyc: true,
+        with_transactions: true,
+        days_of_transactions: "Days90",
+        with_details_and_banking_statements: false,
+        number_of_banking_statements: "MostRecent"
+      }
+
+      expected_resource
+    end
+
+    Flinks.stub :client, client do
+      resource = Flinks::AccountDetail.get(request_id: "req-123")
+
+      assert_same expected_resource, resource
+      assert_instance_of Flinks::Resources::AccountDetailPending, resource
+    end
+  end
+
+  def test_account_detail_get_async_delegates_to_client
+    client = Object.new
+    expected_resource = Flinks::Resources::AccountDetail.new(
+      "HttpStatusCode" => 200,
+      "Accounts" => [
+        {
+          "Title" => "Chequing Account",
+          "Id" => "acc-123"
+        }
+      ],
+      "RequestId" => "req-123"
+    )
+    client.define_singleton_method(:get_accounts_detail_async) do |request_id:|
+      raise "unexpected request_id" unless request_id == "req-123"
+
+      expected_resource
+    end
+
+    Flinks.stub :client, client do
+      resource = Flinks::AccountDetail.get_async(request_id: "req-123")
+
+      assert_same expected_resource, resource
+      assert_instance_of Flinks::Resources::AccountDetail, resource
+    end
+  end
+
   def test_generate_authorize_token_success
     response = Struct.new(:status, :body).new(
       200,
@@ -535,5 +853,34 @@ class TestFlinks < Minitest::Test
       },
       resource.attributes
     )
+  end
+
+  def test_get_accounts_detail_raises_session_nonexistent_error
+    response = Struct.new(:status, :body).new(
+      400,
+      {
+        "HttpStatusCode" => 400,
+        "Message" => "RequestId 1df20baf-65d5-40ee-9be0-8058c13042e2 is invalid or session has ended",
+        "FlinksCode" => "SESSION_NONEXISTENT"
+      }.to_json
+    )
+
+    connection = Object.new
+    connection.define_singleton_method(:post) do |_path, &block|
+      request = Struct.new(:headers, :body).new({}, nil)
+      block.call(request)
+      response
+    end
+
+    Faraday.stub :new, connection do
+      error = assert_raises(Flinks::SessionNonexistentError) do
+        Flinks.client.get_accounts_detail(request_id: "1df20baf-65d5-40ee-9be0-8058c13042e2")
+      end
+
+      assert_instance_of Flinks::Resources::SessionNonexistentErrorObject, error.error_object
+      assert_equal 400, error.error_object.http_status_code
+      assert_equal "SESSION_NONEXISTENT", error.error_object.flinks_code
+      assert_equal "RequestId 1df20baf-65d5-40ee-9be0-8058c13042e2 is invalid or session has ended", error.error_object.message
+    end
   end
 end

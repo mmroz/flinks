@@ -16,6 +16,8 @@ The gem currently supports:
 - `GenerateAuthorizeToken`
 - `Authorize` with `MostRecentCached: true`
 - `GetAccountsSummary`
+- `GetAccountsDetail`
+- `GetAccountsDetailAsync`
 - webhook callback parsing for `/flinks/connect/callback`
 
 ## Installation
@@ -147,6 +149,48 @@ summary = Flinks::AccountSummary.get(
 )
 ```
 
+### Get Account Details
+
+This calls `/GetAccountsDetail` with the configured `x-api-key`.
+
+Usage:
+
+```ruby
+account_details = Flinks::AccountDetail.get(request_id: session.request_id)
+account_details.class
+account_details.attributes
+```
+
+Optional flags:
+
+```ruby
+account_details = Flinks::AccountDetail.get(
+  request_id: session.request_id,
+  with_account_identity: true,
+  with_kyc: true,
+  with_transactions: true,
+  days_of_transactions: "Days90",
+  with_details_and_banking_statements: false,
+  number_of_banking_statements: "MostRecent"
+)
+```
+
+If Flinks is still processing, this returns `Flinks::Resources::AccountDetailPending` with `http_status_code == 202` and a `request_id`.
+
+### Get Account Details Async
+
+This calls `/GetAccountsDetailAsync/:request_id` with the configured `x-api-key`.
+
+Usage:
+
+```ruby
+account_details_async = Flinks::AccountDetail.get_async(request_id: account_details.request_id)
+account_details_async.class
+account_details_async.attributes
+```
+
+Call `/GetAccountsDetailAsync` only after `/GetAccountsDetail` returns `202`.
+
 ## Resource Models
 
 All API models inherit from `Flinks::Resources::Resource` and use:
@@ -213,6 +257,8 @@ The intended end-to-end flow is:
 3. Generate a fresh authorize token for the authorize request.
 4. Authorize the session with the `loginId` and the new authorize token.
 5. Use the returned `requestId` to fetch account summaries.
+6. Call `GetAccountsDetail` with the session `requestId`.
+7. If `GetAccountsDetail` returns `202`, call `GetAccountsDetailAsync` with that `requestId`.
 
 Example:
 
@@ -232,6 +278,16 @@ session = Flinks::Session.authorize(
 
 summary = Flinks::AccountSummary.get(request_id: session.request_id)
 summary
+```
+
+Account detail flow:
+
+```ruby
+account_details = Flinks::AccountDetail.get(request_id: session.request_id)
+
+if account_details.http_status_code == 202
+  account_details_async = Flinks::AccountDetail.get_async(request_id: account_details.request_id)
+end
 ```
 
 Concrete example:

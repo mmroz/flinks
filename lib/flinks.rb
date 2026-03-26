@@ -7,8 +7,12 @@ require_relative "flinks/version"
 require_relative "flinks/client"
 require_relative "flinks/resources/resource"
 require_relative "flinks/resources/error_object"
+require_relative "flinks/resources/session_nonexistent_error_object"
 require_relative "flinks/resources/authorize_token"
 require_relative "flinks/resources/account"
+require_relative "flinks/resources/transaction"
+require_relative "flinks/resources/account_detail"
+require_relative "flinks/resources/account_detail_pending"
 require_relative "flinks/resources/account_summary"
 require_relative "flinks/resources/link"
 require_relative "flinks/resources/login"
@@ -33,6 +37,9 @@ module Flinks
       parts << error_object.message if error_object.respond_to?(:message) && error_object.message
       parts.empty? ? "Flinks API error" : parts.join(": ")
     end
+  end
+
+  class SessionNonexistentError < Error
   end
 
   class << self
@@ -67,7 +74,11 @@ module Flinks
 
   AuthorizeToken = Resources::AuthorizeToken
   ErrorObject = Resources::ErrorObject
+  SessionNonexistentErrorObject = Resources::SessionNonexistentErrorObject
   Account = Resources::Account
+  Transaction = Resources::Transaction
+  AccountDetail = Resources::AccountDetail
+  AccountDetailPending = Resources::AccountDetailPending
   AccountSummary = Resources::AccountSummary
   Link = Resources::Link
   Login = Resources::Login
