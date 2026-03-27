@@ -21,14 +21,14 @@ module Flinks
 
       def attributes
         {
-          "HttpStatusCode" => http_status_code,
-          "Accounts" => accounts.map(&:attributes),
-          "Links" => links.map(&:attributes),
-          "InstitutionName" => institution_name,
-          "Login" => login&.attributes,
-          "InstitutionId" => institution_id,
-          "Institution" => institution,
-          "RequestId" => request_id
+          'HttpStatusCode' => http_status_code,
+          'Accounts' => accounts.map(&:attributes),
+          'Links' => links.map(&:attributes),
+          'InstitutionName' => institution_name,
+          'Login' => login&.attributes,
+          'InstitutionId' => institution_id,
+          'Institution' => institution,
+          'RequestId' => request_id
         }.merge(extra_attributes)
       end
 
@@ -37,9 +37,9 @@ module Flinks
         with_account_identity: true,
         with_kyc: true,
         with_transactions: true,
-        days_of_transactions: "Days90",
+        days_of_transactions: 'Days90',
         with_details_and_banking_statements: false,
-        number_of_banking_statements: "MostRecent"
+        number_of_banking_statements: 'MostRecent'
       )
         Flinks.client.get_accounts_detail(
           request_id: request_id,
@@ -58,15 +58,15 @@ module Flinks
 
       def self.normalize_attribute_name(key)
         case key.to_s
-        when "HttpStatusCode" then "http_status_code"
-        when "Accounts" then "accounts"
-        when "Links" then "links"
-        when "InstitutionName" then "institution_name"
-        when "Login" then "login"
-        when "InstitutionId" then "institution_id"
-        when "Institution" then "institution"
-        when "RequestId" then "request_id"
-        when "extra_attributes" then "extra_attributes"
+        when 'HttpStatusCode' then 'http_status_code'
+        when 'Accounts' then 'accounts'
+        when 'Links' then 'links'
+        when 'InstitutionName' then 'institution_name'
+        when 'Login' then 'login'
+        when 'InstitutionId' then 'institution_id'
+        when 'Institution' then 'institution'
+        when 'RequestId' then 'request_id'
+        when 'extra_attributes' then 'extra_attributes'
         else
           key.to_s
         end
@@ -74,13 +74,13 @@ module Flinks
 
       def attributes=(values)
         known_attributes = values.to_h.dup
-        self.accounts = Array(known_attributes.delete("Accounts")).map do |account_attributes|
+        self.accounts = Array(known_attributes.delete('Accounts')).map do |account_attributes|
           Flinks::Resources::Account.new(account_attributes)
         end
-        self.links = Array(known_attributes.delete("Links")).map do |link_attributes|
+        self.links = Array(known_attributes.delete('Links')).map do |link_attributes|
           Flinks::Resources::Link.new(link_attributes)
         end
-        login_attributes = known_attributes.delete("Login")
+        login_attributes = known_attributes.delete('Login')
         self.login = login_attributes ? Flinks::Resources::Login.new(login_attributes) : nil
         self.extra_attributes = known_attributes.reject do |key, _value|
           %w[HttpStatusCode InstitutionName InstitutionId Institution RequestId].include?(key.to_s)

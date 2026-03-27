@@ -22,30 +22,30 @@ module Flinks
 
       def attributes
         {
-          "Date" => date,
-          "Code" => code,
-          "Description" => description,
-          "Debit" => debit,
-          "Credit" => credit,
-          "Balance" => balance,
-          "Id" => id,
-          "Category" => category,
-          "SubCategory" => sub_category
+          'Date' => date,
+          'Code' => code,
+          'Description' => description,
+          'Debit' => debit,
+          'Credit' => credit,
+          'Balance' => balance,
+          'Id' => id,
+          'Category' => category,
+          'SubCategory' => sub_category
         }.merge(extra_attributes)
       end
 
       def self.normalize_attribute_name(key)
         case key.to_s
-        when "Date" then "date"
-        when "Code" then "code"
-        when "Description" then "description"
-        when "Debit" then "debit"
-        when "Credit" then "credit"
-        when "Balance" then "balance"
-        when "Id" then "id"
-        when "Category" then "category"
-        when "SubCategory" then "sub_category"
-        when "extra_attributes" then "extra_attributes"
+        when 'Date' then 'date'
+        when 'Code' then 'code'
+        when 'Description' then 'description'
+        when 'Debit' then 'debit'
+        when 'Credit' then 'credit'
+        when 'Balance' then 'balance'
+        when 'Id' then 'id'
+        when 'Category' then 'category'
+        when 'SubCategory' then 'sub_category'
+        when 'extra_attributes' then 'extra_attributes'
         else
           key.to_s
         end

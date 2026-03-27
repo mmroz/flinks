@@ -18,24 +18,24 @@ module Flinks
 
       def attributes
         {
-          "CivicAddress" => civic_address,
-          "City" => city,
-          "Province" => province,
-          "PostalCode" => postal_code,
-          "POBox" => po_box,
-          "Country" => country
+          'CivicAddress' => civic_address,
+          'City' => city,
+          'Province' => province,
+          'PostalCode' => postal_code,
+          'POBox' => po_box,
+          'Country' => country
         }.merge(extra_attributes)
       end
 
       def self.normalize_attribute_name(key)
         case key.to_s
-        when "CivicAddress" then "civic_address"
-        when "City" then "city"
-        when "Province" then "province"
-        when "PostalCode" then "postal_code"
-        when "POBox" then "po_box"
-        when "Country" then "country"
-        when "extra_attributes" then "extra_attributes"
+        when 'CivicAddress' then 'civic_address'
+        when 'City' then 'city'
+        when 'Province' then 'province'
+        when 'PostalCode' then 'postal_code'
+        when 'POBox' then 'po_box'
+        when 'Country' then 'country'
+        when 'extra_attributes' then 'extra_attributes'
         else
           key.to_s
         end

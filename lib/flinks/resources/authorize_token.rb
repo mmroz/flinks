@@ -8,8 +8,8 @@ module Flinks
 
       def attributes
         {
-          "HttpStatusCode" => http_status_code,
-          "Token" => token
+          'HttpStatusCode' => http_status_code,
+          'Token' => token
         }
       end
 
@@ -19,8 +19,8 @@ module Flinks
 
       def self.normalize_attribute_name(key)
         case key.to_s
-        when "HttpStatusCode" then "http_status_code"
-        when "Token" then "token"
+        when 'HttpStatusCode' then 'http_status_code'
+        when 'Token' then 'token'
         else
           key.to_s
         end

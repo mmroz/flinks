@@ -20,9 +20,9 @@ module Flinks
       post(
         "#{banking_services_base_url}/GenerateAuthorizeToken",
         headers: {
-          "Accept" => "application/json",
-          "Content-Type" => "application/json",
-          "flinks-auth-key" => @flinks_auth_key
+          'Accept' => 'application/json',
+          'Content-Type' => 'application/json',
+          'flinks-auth-key' => @flinks_auth_key
         },
         resource_class: Flinks::Resources::AuthorizeToken
       )
@@ -32,13 +32,13 @@ module Flinks
       post(
         "#{banking_services_base_url}/Authorize",
         headers: {
-          "flinks-auth-key" => authorize_token,
-          "Authorization" => bearer_authorization
+          'flinks-auth-key' => authorize_token,
+          'Authorization' => bearer_authorization
         },
         json: {
           LoginId: login_id,
-          MostRecentCached: true,
-          authorizeToken: authorize_token,
+          MostRecentCached: most_recent_cached,
+          authorizeToken: authorize_token
         },
         resource_class: Flinks::Resources::Session
       )
@@ -48,7 +48,7 @@ module Flinks
       post(
         "#{banking_services_base_url}/GetAccountsSummary",
         headers: {
-          "x-api-key" => @x_api_key
+          'x-api-key' => @x_api_key
         },
         json: {
           RequestId: request_id,
@@ -64,14 +64,14 @@ module Flinks
       with_account_identity: true,
       with_kyc: true,
       with_transactions: true,
-      days_of_transactions: "Days90",
+      days_of_transactions: 'Days90',
       with_details_and_banking_statements: false,
-      number_of_banking_statements: "MostRecent"
+      number_of_banking_statements: 'MostRecent'
     )
       post(
         "#{banking_services_base_url}/GetAccountsDetail",
         headers: {
-          "x-api-key" => @x_api_key
+          'x-api-key' => @x_api_key
         },
         json: {
           RequestId: request_id,
@@ -93,7 +93,7 @@ module Flinks
       get(
         "#{banking_services_base_url}/GetAccountsDetailAsync/#{request_id}",
         headers: {
-          "x-api-key" => @x_api_key
+          'x-api-key' => @x_api_key
         },
         resource_class: {
           200 => Flinks::Resources::AccountDetail,
@@ -120,54 +120,54 @@ module Flinks
       "Bearer #{@bearer_token}"
     end
 
-    def post(path_or_url, headers: {}, json: nil, resource_class:)
+    def post(path_or_url, resource_class:, headers: {}, json: nil)
       request_body = json ? JSON.generate(json) : nil
-      request_headers = { "Accept" => "application/json" }.merge(headers)
-      request_headers["Content-Type"] = "application/json" if json
+      request_headers = { 'Accept' => 'application/json' }.merge(headers)
+      request_headers['Content-Type'] = 'application/json' if json
 
       log_request(
-        method: "POST",
+        method: 'POST',
         url: absolute_url(path_or_url),
         headers: request_headers,
         body: request_body
       )
 
       response = connection.post(path_or_url) do |request|
-        request.headers["Accept"] ||= "application/json"
+        request.headers['Accept'] ||= 'application/json'
         headers.each do |header, value|
           request.headers[header] = value
         end
         if json
-          request.headers["Content-Type"] ||= "application/json"
+          request.headers['Content-Type'] ||= 'application/json'
           request.body = request_body
         end
       end
 
       payload = self.class.parse_response_body(response.body)
-      payload["HttpStatusCode"] ||= response.status
+      payload['HttpStatusCode'] ||= response.status
 
       build_response_object(response.status, payload, resource_class)
     end
 
-    def get(path_or_url, headers: {}, resource_class:)
-      request_headers = { "Accept" => "application/json" }.merge(headers)
+    def get(path_or_url, resource_class:, headers: {})
+      request_headers = { 'Accept' => 'application/json' }.merge(headers)
 
       log_request(
-        method: "GET",
+        method: 'GET',
         url: absolute_url(path_or_url),
         headers: request_headers,
         body: nil
       )
 
       response = connection.get(path_or_url) do |request|
-        request.headers["Accept"] ||= "application/json"
+        request.headers['Accept'] ||= 'application/json'
         headers.each do |header, value|
           request.headers[header] = value
         end
       end
 
       payload = self.class.parse_response_body(response.body)
-      payload["HttpStatusCode"] ||= response.status
+      payload['HttpStatusCode'] ||= response.status
 
       build_response_object(response.status, payload, resource_class)
     end
@@ -189,8 +189,8 @@ module Flinks
     end
 
     def build_error_object(payload)
-      case payload["FlinksCode"]
-      when "SESSION_NONEXISTENT"
+      case payload['FlinksCode']
+      when 'SESSION_NONEXISTENT'
         Flinks::Resources::SessionNonexistentErrorObject.new(payload)
       else
         Flinks::Resources::ErrorObject.new(payload)
@@ -211,7 +211,7 @@ module Flinks
 
       JSON.parse(body)
     rescue JSON::ParserError
-      { "Message" => body.to_s }
+      { 'Message' => body.to_s }
     end
 
     def log_request(method:, url:, headers:, body:)
@@ -223,11 +223,11 @@ module Flinks
     end
 
     def debug_logging_enabled?
-      Flinks.log_level.to_s.downcase == "debug"
+      Flinks.log_level.to_s.downcase == 'debug'
     end
 
     def absolute_url(path_or_url)
-      return path_or_url if path_or_url.start_with?("http://", "https://")
+      return path_or_url if path_or_url.start_with?('http://', 'https://')
 
       "#{@api_url.to_s.chomp('/')}#{path_or_url}"
     end

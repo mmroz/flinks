@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "pp"
+require 'pp'
 
 module Flinks
   module Resources
@@ -41,7 +41,7 @@ module Flinks
       private
 
       def formatted_attributes
-        attributes.map { |key, value| "#{key}=#{value.inspect}" }.join(", ")
+        attributes.map { |key, value| "#{key}=#{value.inspect}" }.join(', ')
       end
     end
   end

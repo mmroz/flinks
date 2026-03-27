@@ -9,17 +9,17 @@ module Flinks
 
       def attributes
         {
-          "rel" => rel,
-          "href" => href,
-          "example" => example
+          'rel' => rel,
+          'href' => href,
+          'example' => example
         }
       end
 
       def self.normalize_attribute_name(key)
         case key.to_s
-        when "rel" then "rel"
-        when "href" then "href"
-        when "example" then "example"
+        when 'rel' then 'rel'
+        when 'href' then 'href'
+        when 'example' then 'example'
         else
           key.to_s
         end
