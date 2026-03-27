@@ -9,7 +9,9 @@ require_relative "flinks/resources/resource"
 require_relative "flinks/resources/error_object"
 require_relative "flinks/resources/session_nonexistent_error_object"
 require_relative "flinks/resources/authorize_token"
+require_relative "flinks/resources/address"
 require_relative "flinks/resources/account"
+require_relative "flinks/resources/account_holder"
 require_relative "flinks/resources/transaction"
 require_relative "flinks/resources/account_detail"
 require_relative "flinks/resources/account_detail_pending"
@@ -75,7 +77,9 @@ module Flinks
   AuthorizeToken = Resources::AuthorizeToken
   ErrorObject = Resources::ErrorObject
   SessionNonexistentErrorObject = Resources::SessionNonexistentErrorObject
+  Address = Resources::Address
   Account = Resources::Account
+  AccountHolder = Resources::AccountHolder
   Transaction = Resources::Transaction
   AccountDetail = Resources::AccountDetail
   AccountDetailPending = Resources::AccountDetailPending

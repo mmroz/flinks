@@ -16,7 +16,7 @@ module Flinks
       attribute :category, :string
       attribute :type, :string
       attribute :currency, :string
-      attribute :holder
+      attr_accessor :holder
       attribute :account_type, :string
       attribute :id, :string
       attr_accessor :extra_attributes
@@ -41,7 +41,7 @@ module Flinks
           "Category" => category,
           "Type" => type,
           "Currency" => currency,
-          "Holder" => holder,
+          "Holder" => holder&.attributes,
           "AccountType" => account_type,
           "Id" => id
         }.merge(extra_attributes)
@@ -77,6 +77,8 @@ module Flinks
         self.transactions = Array(transaction_attributes).map do |transaction_attributes|
           Flinks::Resources::Transaction.new(transaction_attributes)
         end if transaction_attributes
+        holder_attributes = known_attributes.delete("Holder")
+        self.holder = holder_attributes ? Flinks::Resources::AccountHolder.new(holder_attributes) : nil
         self.extra_attributes = known_attributes.reject do |key, _value|
           %w[
             EftEligibleRatio
